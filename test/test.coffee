@@ -1,4 +1,5 @@
 Provider = require("..")
+Q = require("q")
 
 FooSerializer = (name) ->
     @name = name || "foo"
@@ -83,34 +84,36 @@ describe "Test that the WebStorage provider (initialized)...", ->
         provider.metadataSerializer.should.equal("a")
 
     describe "and when calling setItem", ->
-        beforeEach ->
+        beforeEach (done) ->
             sinon.spy(localStorage, "setItem")
             sinon.spy(aSerializer, "serialize")
             sinon.spy(bSerializer, "serialize")
+            provider.setItem(key, value).then(done, done)
 
         it "should call localStorage.setItem", ->
-            provider.setItem(key, value)
             localStorage.setItem.should.have.been.calledWith(key, serializedValue)
 
         it "should call provider.serialize", ->
-            provider.setItem(key, value)
             bSerializer.serialize.should.have.been.calledWith(value)
             aSerializer.serialize.should.not.have.been.called
 
     describe "and when calling getItem", ->
-        beforeEach ->
+        beforeEach (done) ->
             sinon.spy(localStorage, "getItem")
             sinon.spy(aSerializer, "deserialize")
             sinon.spy(bSerializer, "deserialize")
+            provider.getItem(key).then(
+                (result) =>
+                    @result = result
+                    done()
+                )
 
         it "should call localStorage.getItem", ->
-            provider.getItem(key)
             localStorage.getItem.should.have.been.calledWith(key)
 
         it "should call provider.deserialize", ->
-            provider.getItem(key)
             bSerializer.deserialize.should.have.been.calledWith(serializedValue)
             aSerializer.deserialize.should.not.have.been.called
 
         it "should return the correct value", ->
-            provider.getItem(key).should.equal(value)
+            @result.should.equal(value)
